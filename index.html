@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <style>
 :root {
   --bg: #f6f5f2;
@@ -908,14 +909,6 @@ button {
       </div>
 
       <div class="card">
-  <div class="card-title">Fecha del plan</div>
-  <div class="field">
-    <label>Fecha</label>
-    <input type="date" id="fechaPlan" onchange="cambiarFechaPlan()">
-  </div>
-</div>
-      
-      <div class="card">
         <div class="card-title">Macros diarios objetivo</div>
         <div class="macros-obj-grid">
           <div class="field">
@@ -933,9 +926,20 @@ button {
           <div class="field">
             <label>&nbsp;</label>
             <button class="btn-primary" onclick="actualizarMacros()">Actualizar</button>
+            <button class="btn-green" onclick="exportarPDFDia()">Exportar PDF del día</button>
           </div>
         </div>
       </div>
+      
+      <div class="card">
+  <div class="card-title">Fecha del plan</div>
+  <div class="field">
+    <label>Fecha</label>
+    <input type="date" id="fechaPlan" onchange="cambiarFechaPlan()">
+  </div>
+</div>
+      
+      
 
       <div class="summary-row">
         <div class="stat-card">
@@ -1714,6 +1718,280 @@ function obtenerTextoCantidad(medida) {
   if (medida === '1 unidad') return 'unid.';
   if (medida === '1 litro') return 'ml';
   return 'g';
+}
+  
+function calcularTotalesDia(){
+  let total = {
+    proteina: 0,
+    carbohidrato: 0,
+    grasa: 0,
+    kcal: 0
+  };
+
+  Object.values(comidas).forEach(lista => {
+    lista.forEach(item => {
+      total.proteina += item.proteina;
+      total.carbohidrato += item.carbohidrato;
+      total.grasa += item.grasa;
+      total.kcal += item.kcal;
+    });
+  });
+
+  return total;
+}
+
+function calcularObjetivoDia(){
+  const proteina = parseFloat(document.getElementById('macroProteina').value) || 0;
+  const carbohidrato = parseFloat(document.getElementById('macroCarbo').value) || 0;
+  const grasa = parseFloat(document.getElementById('macroGrasa').value) || 0;
+  const kcal = proteina * 4 + carbohidrato * 4 + grasa * 9;
+
+  return { proteina, carbohidrato, grasa, kcal };
+}
+
+function textoDiferencia(consumido, objetivo, unidad){
+  const diferencia = objetivo - consumido;
+
+  if(diferencia < 0){
+    return `Exceso: ${Math.abs(diferencia).toFixed(1)} ${unidad}`;
+  }
+
+  return `Faltó: ${diferencia.toFixed(1)} ${unidad}`;
+}
+
+function exportarPDFDia(){
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF("p", "mm", "a4");
+
+  const fecha = document.getElementById('fechaPlan')?.value || obtenerFechaHoy();
+  const objetivo = calcularObjetivoDia();
+  const consumido = calcularTotalesDia();
+
+  const pageW = 210;
+  const margin = 14;
+  let y = 14;
+
+  const dark = [24, 22, 20];
+  const orange = [212, 82, 42];
+  const green = [26, 92, 58];
+  const blue = [37, 99, 201];
+  const red = [184, 50, 50];
+  const bg = [246, 245, 242];
+  const line = [226, 221, 216];
+  const muted = [120, 115, 110];
+
+  function txt(color){ pdf.setTextColor(color[0], color[1], color[2]); }
+  function fill(color){ pdf.setFillColor(color[0], color[1], color[2]); }
+  function stroke(color){ pdf.setDrawColor(color[0], color[1], color[2]); }
+
+  function checkPage(extra){
+    if(y + extra > 282){
+      pdf.addPage();
+      y = 16;
+      drawFooter();
+    }
+  }
+
+  function drawFooter(){
+    pdf.setFontSize(8);
+    txt(muted);
+    pdf.text("MacroFagus Chef", margin, 290);
+    pdf.text(`Reporte diario · ${fecha}`, 150, 290);
+  }
+
+  function diff(cons, obj, unidad){
+    const d = obj - cons;
+    return d < 0
+      ? { texto:`Exceso ${Math.abs(d).toFixed(1)} ${unidad}`, color:red }
+      : { texto:`Faltan ${d.toFixed(1)} ${unidad}`, color:green };
+  }
+
+  function progressBar(x, yBar, w, cons, obj, color){
+    const pct = obj > 0 ? Math.min(cons / obj, 1) : 0;
+    fill([232, 228, 224]);
+    pdf.roundedRect(x, yBar, w, 3, 1.5, 1.5, "F");
+    fill(color);
+    pdf.roundedRect(x, yBar, w * pct, 3, 1.5, 1.5, "F");
+  }
+
+  function macroCard(x, yCard, w, title, cons, obj, unidad, color){
+    fill([255,255,255]);
+    stroke(line);
+    pdf.roundedRect(x, yCard, w, 34, 4, 4, "FD");
+
+    pdf.setFontSize(7.5);
+    txt(muted);
+    pdf.text(title, x + 4, yCard + 7);
+
+    pdf.setFontSize(14);
+    txt(dark);
+    pdf.text(`${cons.toFixed(unidad === 'kcal' ? 0 : 1)}`, x + 4, yCard + 16);
+
+    pdf.setFontSize(7.5);
+    txt(muted);
+    pdf.text(`de ${obj.toFixed(unidad === 'kcal' ? 0 : 1)} ${unidad}`, x + 4, yCard + 22);
+
+    progressBar(x + 4, yCard + 25, w - 8, cons, obj, color);
+
+    const d = diff(cons, obj, unidad);
+    pdf.setFontSize(7);
+    txt(d.color);
+    pdf.text(d.texto, x + 4, yCard + 32);
+  }
+
+  function comidaTotal(comida){
+    return calcularConsumidoComida(comida);
+  }
+
+  function cortar(texto, largo){
+    texto = String(texto || "");
+    return texto.length > largo ? texto.substring(0, largo - 3) + "..." : texto;
+  }
+
+  // HEADER
+  fill(dark);
+  pdf.roundedRect(margin, y, 182, 26, 5, 5, "F");
+
+  pdf.setFontSize(18);
+  txt([255,255,255]);
+  pdf.text("MacroFagus Chef", margin + 7, y + 11);
+
+  pdf.setFontSize(9);
+  txt([225,225,225]);
+  pdf.text("Reporte diario de comidas y macros", margin + 7, y + 19);
+
+  pdf.setFontSize(10);
+  txt([255,255,255]);
+  pdf.text(fecha, 166, y + 11);
+
+  y += 36;
+
+  // RESUMEN
+  pdf.setFontSize(15);
+  txt(dark);
+  pdf.text("Resumen diario", margin, y);
+  y += 8;
+
+  macroCard(margin, y, 42, "PROTEÍNAS", consumido.proteina, objetivo.proteina, "g", orange);
+  macroCard(margin + 46, y, 42, "CARBOHIDRATOS", consumido.carbohidrato, objetivo.carbohidrato, "g", blue);
+  macroCard(margin + 92, y, 42, "GRASAS", consumido.grasa, objetivo.grasa, "g", green);
+  macroCard(margin + 138, y, 44, "KCAL", consumido.kcal, objetivo.kcal, "kcal", [201,123,18]);
+
+  y += 44;
+
+  // BALANCE
+  fill(bg);
+  stroke(line);
+  pdf.roundedRect(margin, y, 182, 18, 4, 4, "FD");
+
+  pdf.setFontSize(9);
+  txt(muted);
+  pdf.text("Balance del día", margin + 5, y + 6);
+
+  pdf.setFontSize(8.5);
+  txt(dark);
+
+  const dp = diff(consumido.proteina, objetivo.proteina, "g").texto;
+  const dc = diff(consumido.carbohidrato, objetivo.carbohidrato, "g").texto;
+  const dg = diff(consumido.grasa, objetivo.grasa, "g").texto;
+  const dk = diff(consumido.kcal, objetivo.kcal, "kcal").texto;
+
+  pdf.text(`P: ${dp}`, margin + 5, y + 13);
+  pdf.text(`C: ${dc}`, margin + 49, y + 13);
+  pdf.text(`G: ${dg}`, margin + 96, y + 13);
+  pdf.text(`Kcal: ${dk}`, margin + 136, y + 13);
+
+  y += 30;
+
+  pdf.setFontSize(15);
+  txt(dark);
+  pdf.text("Comidas registradas", margin, y);
+  y += 8;
+
+  const orden = ["desayuno", "colacion1", "almuerzo", "colacion2", "cena"];
+
+  orden.forEach(comida => {
+    const lista = comidas[comida];
+    const total = comidaTotal(comida);
+    const obj = calcularObjetivoComida(comida);
+
+    checkPage(45 + lista.length * 7);
+
+    // TARJETA COMIDA
+    fill([255,255,255]);
+    stroke(line);
+    pdf.roundedRect(margin, y, 182, 22, 4, 4, "FD");
+
+    fill(orange);
+    pdf.roundedRect(margin, y, 4, 22, 2, 2, "F");
+
+    pdf.setFontSize(12);
+    txt(dark);
+    pdf.text(nombresComidas[comida], margin + 8, y + 8);
+
+    pdf.setFontSize(7.5);
+    txt(muted);
+    pdf.text(`${obj.porcentaje}% del objetivo diario`, margin + 8, y + 15);
+
+    pdf.setFontSize(8);
+    txt(dark);
+    pdf.text(`P ${total.proteina.toFixed(1)}/${obj.proteina.toFixed(1)}g`, margin + 63, y + 8);
+    pdf.text(`C ${total.carbohidrato.toFixed(1)}/${obj.carbohidrato.toFixed(1)}g`, margin + 98, y + 8);
+    pdf.text(`G ${total.grasa.toFixed(1)}/${obj.grasa.toFixed(1)}g`, margin + 133, y + 8);
+    pdf.text(`${total.kcal.toFixed(0)}/${obj.kcal.toFixed(0)} kcal`, margin + 63, y + 16);
+
+    y += 28;
+
+    // ENCABEZADO TABLA
+    fill(bg);
+    stroke(line);
+    pdf.roundedRect(margin, y, 182, 8, 2, 2, "FD");
+
+    pdf.setFontSize(7);
+    txt(muted);
+    pdf.text("ALIMENTO", margin + 4, y + 5.5);
+    pdf.text("CANTIDAD", margin + 84, y + 5.5);
+    pdf.text("P", margin + 116, y + 5.5);
+    pdf.text("C", margin + 134, y + 5.5);
+    pdf.text("G", margin + 152, y + 5.5);
+    pdf.text("KCAL", margin + 169, y + 5.5);
+
+    y += 11;
+
+    if(lista.length === 0){
+      pdf.setFontSize(8.5);
+      txt(muted);
+      pdf.text("Sin alimentos registrados.", margin + 4, y);
+      y += 10;
+    } else {
+      lista.forEach(item => {
+        checkPage(8);
+
+        pdf.setFontSize(8);
+        txt(dark);
+
+        pdf.text(cortar(item.nombre, 34), margin + 4, y);
+        txt(muted);
+        pdf.text(cortar(`${item.cantidad} ${obtenerTextoCantidad(item.medida)}`, 12), margin + 84, y);
+
+        txt(dark);
+        pdf.text(item.proteina.toFixed(1), margin + 116, y);
+        pdf.text(item.carbohidrato.toFixed(1), margin + 134, y);
+        pdf.text(item.grasa.toFixed(1), margin + 152, y);
+        pdf.text(item.kcal.toFixed(0), margin + 169, y);
+
+        stroke([238,236,233]);
+        pdf.line(margin + 2, y + 3, margin + 180, y + 3);
+
+        y += 7;
+      });
+    }
+
+    y += 9;
+  });
+
+  drawFooter();
+  pdf.save(`macrofagus_chef_${fecha}.pdf`);
 }
 
 function actualizarTotales() {
