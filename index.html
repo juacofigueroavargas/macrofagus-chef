@@ -908,6 +908,14 @@ button {
       </div>
 
       <div class="card">
+  <div class="card-title">Fecha del plan</div>
+  <div class="field">
+    <label>Fecha</label>
+    <input type="date" id="fechaPlan" onchange="cambiarFechaPlan()">
+  </div>
+</div>
+      
+      <div class="card">
         <div class="card-title">Macros diarios objetivo</div>
         <div class="macros-obj-grid">
           <div class="field">
@@ -1039,6 +1047,62 @@ let comidaActiva = null;
 let comidasFinalizadas = {
   desayuno: false, colacion1: false, almuerzo: false, colacion2: false, cena: false
 };
+  
+let fechaActualPlan = '';
+
+function obtenerFechaHoy(){
+  return new Date().toISOString().split('T')[0];
+}
+
+function guardarComidasPorFecha(){
+  if(!fechaActualPlan) return;
+
+  const data = {
+    comidas,
+    comidasFinalizadas
+  };
+
+  localStorage.setItem(
+    `macrofagusChefComidas_${fechaActualPlan}`,
+    JSON.stringify(data)
+  );
+}
+
+function cargarComidasPorFecha(fecha){
+  const guardadas = localStorage.getItem(`macrofagusChefComidas_${fecha}`);
+
+  comidas = {
+    desayuno: [],
+    colacion1: [],
+    almuerzo: [],
+    colacion2: [],
+    cena: []
+  };
+
+  comidasFinalizadas = {
+    desayuno: false,
+    colacion1: false,
+    almuerzo: false,
+    colacion2: false,
+    cena: false
+  };
+
+  if(guardadas){
+    const data = JSON.parse(guardadas);
+    comidas = data.comidas || comidas;
+    comidasFinalizadas = data.comidasFinalizadas || comidasFinalizadas;
+  }
+}
+
+function cambiarFechaPlan(){
+  guardarComidasPorFecha();
+
+  fechaActualPlan = document.getElementById('fechaPlan').value || obtenerFechaHoy();
+
+  cargarComidasPorFecha(fechaActualPlan);
+  comidaActiva = null;
+  renderComidas();
+}  
 
 const nombresComidas = {
   desayuno:'Desayuno', colacion1:'Colación 1', almuerzo:'Almuerzo',
@@ -1450,6 +1514,7 @@ function renderComidaActiva() {
 function finalizarComida(comida) {
   comidasFinalizadas[comida] = true;
   comidaActiva = null;
+  guardarComidasPorFecha();
   renderComidas();
 }
 
@@ -1607,6 +1672,7 @@ function usarSugerencia(comida) {
       grasa: item.grasa, kcal: item.kcal
     });
   });
+  guardarComidasPorFecha();
   renderComidas();
 }
 
@@ -1618,6 +1684,7 @@ function agregarAComida(comida) {
   const a = alimentos[indexAlimento];
   const macros = calcularMacrosPorCantidad(a, cantidad);
   comidas[comida].push({ nombre:a.nombre, medida:a.medida, cantidad, ...macros });
+  guardarComidasPorFecha();
   renderComidas();
 }
 
@@ -1638,6 +1705,7 @@ function renderItemsComida(comida) {
 
 function eliminarDeComida(comida, index) {
   comidas[comida].splice(index, 1);
+  guardarComidasPorFecha();
   renderComidas();
 }
 
@@ -1672,9 +1740,15 @@ document.addEventListener('click', function(e) {
   }
 });
 
-cargarAlimentosLocal();  
+cargarAlimentosLocal();
 mostrarAlimentos();
+
 cargarMacrosLocal();
+
+fechaActualPlan = obtenerFechaHoy();
+document.getElementById('fechaPlan').value = fechaActualPlan;
+cargarComidasPorFecha(fechaActualPlan);
+
 renderComidas();
 </script>
 </body>
