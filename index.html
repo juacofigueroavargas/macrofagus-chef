@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>MacroFagus Chef</title>
+<title>MacroFagus Daily</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -793,8 +793,8 @@ button {
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <div>
-      <div class="logo">Macro<em>Fagus</em><br>Chef</div>
-      <div class="logo-sub">Planificador de macros</div>
+      <div class="logo">Macro<em>Fagus</em><br>Daily</div>
+      <div class="logo-sub">Registro diario de macros</div>
     </div>
 
     <nav class="nav">
@@ -1141,7 +1141,7 @@ function exportarAlimentosExcel(){
   const libro = XLSX.utils.book_new();
 
   XLSX.utils.book_append_sheet(libro, hoja, "Alimentos");
-  XLSX.writeFile(libro, "macrofagus_chef_alimentos.xlsx");
+  XLSX.writeFile(libro, "macrofagus_daily_alimentos.xlsx");
 }
 
 function importarAlimentosExcel(event) {
@@ -1182,7 +1182,7 @@ function importarAlimentosExcel(event) {
 }
 
 function guardarAlimentosLocal(){
-  localStorage.setItem('macrofagusChefAlimentos', JSON.stringify(alimentos));
+  localStorage.setItem('macrofagusDailyAlimentos', JSON.stringify(alimentos));
 }
   
 function guardarMacrosLocal(){
@@ -1213,7 +1213,7 @@ function actualizarMacros(){
 }
 
 function cargarAlimentosLocal(){
-  const guardados = localStorage.getItem('macrofagusChefAlimentos');
+  const guardados = localStorage.getItem('macrofagusDailyAlimentos');
 
   if(guardados){
     alimentos = JSON.parse(guardados);
@@ -1795,7 +1795,7 @@ function exportarPDFDia(){
   function drawFooter(){
     pdf.setFontSize(8);
     txt(muted);
-    pdf.text("MacroFagus Chef", margin, 290);
+    pdf.text("MacroFagus Daily", margin, 290);
     pdf.text(`Reporte diario · ${fecha}`, 150, 290);
   }
 
@@ -1854,7 +1854,7 @@ function exportarPDFDia(){
 
   pdf.setFontSize(18);
   txt([255,255,255]);
-  pdf.text("MacroFagus Chef", margin + 7, y + 11);
+  pdf.text("MacroFagus Daily", margin + 7, y + 11);
 
   pdf.setFontSize(9);
   txt([225,225,225]);
