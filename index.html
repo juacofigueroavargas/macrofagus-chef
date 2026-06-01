@@ -861,6 +861,7 @@ button {
               <option value="verduras">🥦 Verduras</option>
               <option value="grasas">🥑 Grasas y frutos secos</option>
               <option value="frutas">🍎 Frutas</option>
+              <option value="extras">🍔 Extras</option>
             </select>
           </div>
 
@@ -983,6 +984,7 @@ const categorias = {
   verduras:   { nombre: 'Verduras',            icon: '🥦', color: '#1a5c3a', bg: '#e8f5ee' },
   grasas:     { nombre: 'Grasas y frutos secos', icon: '🥑', color: '#6b4e9c', bg: '#f3eefb' },
   frutas:     { nombre: 'Frutas',              icon: '🍎', color: '#d4522a', bg: '#fceee8' },
+  extras:     { nombre: 'Extras',               icon: '🍔',color: '#b83232',bg: '#fdf0f0'},
 };
 
 let alimentos = [
@@ -1041,6 +1043,11 @@ let alimentos = [
   { nombre:'Kiwi', medida:'100 g', proteina:1.1, carbohidrato:15, grasa:0.5, categoria:'frutas' },
   { nombre:'Naranja', medida:'100 g', proteina:1, carbohidrato:12, grasa:0.1, categoria:'frutas' },
   { nombre:'Uva', medida:'100 g', proteina:0.6, carbohidrato:18, grasa:0.2, categoria:'frutas' },
+  {nombre:'Coca-Cola',medida:'1 litro',proteina:0,carbohidrato:106,grasa:0,categoria:'extras'},
+  {nombre:'Papas fritas',medida:'100 g',proteina:3.4,carbohidrato:41,grasa:15,categoria:'extras'},
+  {nombre:'Pizza',medida:'100 g',proteina:11,carbohidrato:33,grasa:10,categoria:'extras'},
+  {nombre:'Helado',medida:'100 g',proteina:4,carbohidrato:24,grasa:11,categoria:'extras'},
+  {nombre:'Chocolate',medida:'100 g',proteina:7,carbohidrato:59,grasa:31,categoria:'extras'}
 ];
 
 let comidas = {
